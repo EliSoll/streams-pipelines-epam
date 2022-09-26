@@ -17,7 +17,7 @@ public class Collecting {
     }
 
     public int production(IntStream limit) {
-        return 0;
+        return limit.reduce(1, (a, b) -> a * b);
     }
 
     public int oddSum(IntStream limit) {
