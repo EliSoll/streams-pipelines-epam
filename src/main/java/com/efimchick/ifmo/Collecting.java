@@ -21,7 +21,7 @@ public class Collecting {
     }
 
     public int oddSum(IntStream limit) {
-        return 0;
+        return limit.filter(e -> (e % 2) != 0).sum();
     }
 
 
