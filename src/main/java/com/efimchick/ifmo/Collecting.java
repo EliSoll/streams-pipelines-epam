@@ -8,31 +8,33 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Collecting {
-    public int sum(IntStream limit) {
-        return limit.sum();
+    public int sum(IntStream stream) {
+        return stream.sum();
     }
 
-    public int production(IntStream limit) {
-        return limit.reduce(1, (a, b) -> a * b);
+    public int production(IntStream stream) {
+        return stream.reduce(1, (a, b) -> a * b);
     }
 
-    public int oddSum(IntStream limit) {
-        return limit.filter(e -> (e % 2) != 0).sum();
+    public int oddSum(IntStream stream) {
+        return stream.filter(e -> (e % 2) != 0).sum();
     }
-
 
 
     public double averageTotalScore(Stream<CourseResult> programmingResults) {
         return 0;
     }
 
-    public <V, K> Map<K, V> sumByRemainder(int i, IntStream limit) {
-        return null;
-    }
+    public Map<Object, Integer> sumByRemainder(int divisor, IntStream stream) {
+            return stream.boxed().collect(Collectors.groupingBy(s -> s % divisor,
+                    Collectors.summingInt(x -> x)));
+        }
+
 
     public <V, K> Map<K, V> totalScores(Stream<CourseResult> programmingResults) {
         return null;
