@@ -2,10 +2,6 @@ package com.efimchick.ifmo;
 
 import com.efimchick.ifmo.util.CourseResult;
 import com.efimchick.ifmo.util.Person;
-import com.google.common.math.DoubleMath;
-import com.sun.jdi.LongValue;
-
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -29,8 +25,8 @@ public class Collecting {
     }
 
 
-    public double averageTotalScore(Stream<CourseResult> programmingResults) {
-        return 0;
+    public double averageTotalScore(Stream<CourseResult> stream) {
+        return totalScores(stream).values().stream().collect(Collectors.averagingDouble(s -> s));
     }
 
     public Map<Object, Integer> sumByRemainder(int divisor, IntStream stream) {
@@ -61,16 +57,18 @@ public class Collecting {
     }
 
 
-    public static void main(String[] args) {
+    public Map<String, Double> averageScoresPerTask(Stream<CourseResult> stream) {
+       Set <CourseResult> list = stream.collect(Collectors.toSet());
+       long counter = list.stream().map(CourseResult::getPerson).count();
 
-    }
+       Map<String, Double> mapSum = list.stream().map(CourseResult::getTaskResults)
+               .flatMap(map -> map.entrySet().stream())
+               .collect(Collectors.groupingBy(Map.Entry::getKey,
+                       Collectors.summingDouble(Map.Entry::getValue)));
 
-    public Map<String, Double> averageScoresPerTask(Stream<CourseResult> programmingResults) {
-        return programmingResults
-                .flatMap(c -> c.getTaskResults().entrySet().stream())
-                .collect(Collectors.groupingBy(
-                        Map.Entry::getKey,
-                        Collectors.averagingDouble(Map.Entry::getValue)));
+       return mapSum.entrySet()
+               .stream()
+               .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue()/counter));
     }
 
 
