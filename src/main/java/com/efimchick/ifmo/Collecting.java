@@ -2,6 +2,7 @@ package com.efimchick.ifmo;
 
 import com.efimchick.ifmo.util.CourseResult;
 import com.efimchick.ifmo.util.Person;
+
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -39,13 +40,13 @@ public class Collecting {
         List<CourseResult> b = stream.collect(Collectors.toList());
 
         Map<Person, Integer> mapSum = b.stream().collect(Collectors.toMap(CourseResult::getPerson,
-        courseResult -> courseResult.getTaskResults()
-                .values()
-                .stream()
-                .mapToInt(e->e)
+                courseResult -> courseResult.getTaskResults()
+                        .values()
+                        .stream()
+                        .mapToInt(e -> e)
                         .sum()));
         long counter = b.stream().map(courseResult -> courseResult.getTaskResults()
-                .keySet())
+                        .keySet())
                 .collect(Collectors.toSet())
                 .stream()
                 .flatMap(Collection::stream)
@@ -53,31 +54,31 @@ public class Collecting {
                 .count();
         return mapSum.entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e->1.00*e.getValue()/counter));
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> 1.00 * e.getValue() / counter));
     }
 
 
     public Map<String, Double> averageScoresPerTask(Stream<CourseResult> stream) {
-       Set <CourseResult> list = stream.collect(Collectors.toSet());
-       long counter = list.stream().map(CourseResult::getPerson).count();
+        Set<CourseResult> list = stream.collect(Collectors.toSet());
+        long counter = list.stream().map(CourseResult::getPerson).count();
 
-       Map<String, Double> mapSum = list.stream().map(CourseResult::getTaskResults)
-               .flatMap(map -> map.entrySet().stream())
-               .collect(Collectors.groupingBy(Map.Entry::getKey,
-                       Collectors.summingDouble(Map.Entry::getValue)));
+        Map<String, Double> mapSum = list.stream().map(CourseResult::getTaskResults)
+                .flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        Collectors.summingDouble(Map.Entry::getValue)));
 
-       return mapSum.entrySet()
-               .stream()
-               .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue()/counter));
+        return mapSum.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue() / counter));
     }
 
 
     public Map<Person, String> defineMarks(Stream<CourseResult> results) {
-        return results.collect(
+        return totalScores(results).entrySet().stream().collect(
                 Collectors.toMap(
-                        CourseResult::getPerson,
+                        Map.Entry::getKey,
                         x -> {
-                            double avg = x.getTaskResults().values().stream().collect(Collectors.summarizingInt(Integer::intValue)).getAverage();
+                            double avg = x.getValue();
                             if (avg > 90) return "A";
                             if (avg >= 83) return "B";
                             if (avg >= 75) return "C";
