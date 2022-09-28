@@ -1,18 +1,21 @@
 package com.efimchick.ifmo;
 
 import com.efimchick.ifmo.util.CourseResult;
+import com.efimchick.ifmo.util.Person;
+import com.google.common.math.DoubleMath;
+import com.sun.jdi.LongValue;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.stream.*;
 
 public class Collecting {
+    int counter = 0;
+
     public int sum(IntStream stream) {
         return stream.sum();
     }
@@ -31,28 +34,74 @@ public class Collecting {
     }
 
     public Map<Object, Integer> sumByRemainder(int divisor, IntStream stream) {
-            return stream.boxed().collect(Collectors.groupingBy(s -> s % divisor,
-                    Collectors.summingInt(x -> x)));
-        }
-
-
-    public <V, K> Map<K, V> totalScores(Stream<CourseResult> programmingResults) {
-        return null;
+        return stream.boxed().collect(Collectors.groupingBy(s -> s % divisor,
+                Collectors.summingInt(x -> x)));
     }
 
-    public Map<String, Double> averageScoresPerTask(Stream<CourseResult> historyResults) {
-        return null;
+
+    public Map<Person, Double> totalScores(Stream<CourseResult> stream) {
+        List<CourseResult> b = stream.collect(Collectors.toList());
+
+        Map<Person, Integer> mapSum = b.stream().collect(Collectors.toMap(CourseResult::getPerson,
+        courseResult -> courseResult.getTaskResults()
+                .values()
+                .stream()
+                .mapToInt(e->e)
+                        .sum()));
+        long counter = b.stream().map(courseResult -> courseResult.getTaskResults()
+                .keySet())
+                .collect(Collectors.toSet())
+                .stream()
+                .flatMap(Collection::stream)
+                .distinct()
+                .count();
+        return mapSum.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e->1.00*e.getValue()/counter));
     }
 
-    public <V, K> Map<K, V> defineMarks(Stream<CourseResult> programmingResults) {
-        return null;
+
+    public static void main(String[] args) {
+
     }
 
-    public String easiestTask(Stream<CourseResult> programmingResults) {
-        return null;
+    public Map<String, Double> averageScoresPerTask(Stream<CourseResult> programmingResults) {
+        return programmingResults
+                .flatMap(c -> c.getTaskResults().entrySet().stream())
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.averagingDouble(Map.Entry::getValue)));
+    }
+
+
+    public Map<Person, String> defineMarks(Stream<CourseResult> results) {
+        return results.collect(
+                Collectors.toMap(
+                        CourseResult::getPerson,
+                        x -> {
+                            double avg = x.getTaskResults().values().stream().collect(Collectors.summarizingInt(Integer::intValue)).getAverage();
+                            if (avg > 90) return "A";
+                            if (avg >= 83) return "B";
+                            if (avg >= 75) return "C";
+                            if (avg >= 68) return "D";
+                            if (avg >= 60) return "E";
+                            else return "F";
+                        }
+                ));
+    }
+
+    public String easiestTask(Stream<CourseResult> results) {
+        return results.map(CourseResult::getTaskResults)
+                .flatMap(m -> m.entrySet().stream())
+                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.averagingInt(Map.Entry::getValue)))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("No easy task found");
     }
 
     public Collector printableStringCollector() {
+        /*String.format(Locale.US,"\n%20s|%s| %15.2f|%10s","Average",averageScores, averageTotalScore, mark(averageTotalScore));*/
         return new Collector() {
             @Override
             public Supplier supplier() {
