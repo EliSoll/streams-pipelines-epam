@@ -89,14 +89,25 @@ public class Collecting {
                 ));
     }
 
-    public String easiestTask(Stream<CourseResult> results) {
-        return results.map(CourseResult::getTaskResults)
+    public String easiestTask(Stream<CourseResult> stream) {
+        Map<String, Double> map = averageScoresPerTask(stream);
+        Double res = map.values()
+                .stream()
+                .max((Double::compare))
+                .orElse(0.00);
+        return map.entrySet()
+                .stream()
+                .filter(e->e.getValue().equals(res))
+                .findFirst()
+                .get()
+                .getKey();
+       /* return results.map(CourseResult::getTaskResults)
                 .flatMap(m -> m.entrySet().stream())
                 .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.averagingInt(Map.Entry::getValue)))
                 .entrySet().stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
-                .orElse("No easy task found");
+                .orElse("No easy task found");*/
     }
 
     public Collector printableStringCollector() {
