@@ -2,6 +2,7 @@ package com.efimchick.ifmo;
 
 import com.efimchick.ifmo.util.CourseResult;
 import com.efimchick.ifmo.util.Person;
+import com.google.common.collect.Table;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -97,45 +98,104 @@ public class Collecting {
                 .orElse(0.00);
         return map.entrySet()
                 .stream()
-                .filter(e->e.getValue().equals(res))
+                .filter(e -> e.getValue().equals(res))
                 .findFirst()
                 .get()
                 .getKey();
-       /* return results.map(CourseResult::getTaskResults)
-                .flatMap(m -> m.entrySet().stream())
-                .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.averagingInt(Map.Entry::getValue)))
-                .entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse("No easy task found");*/
+
     }
-
-    public Collector printableStringCollector() {
-        /*String.format(Locale.US,"\n%20s|%s| %15.2f|%10s","Average",averageScores, averageTotalScore, mark(averageTotalScore));*/
-        return new Collector() {
+    private boolean areProgramming(CourseResult courseResult){
+        return courseResult.getTaskResults().keySet().stream().allMatch(key -> key.startsWith("Lab "));
+    }
+    private String mark(double avg){
+        if (avg > 90) return "A";
+        if (avg >= 83) return "B";
+        if (avg >= 75) return "C";
+        if (avg >= 68) return "D";
+        if (avg >= 60) return "E";
+        else return "F";
+    }
+    public Collector<CourseResult, ?, String> printableStringCollector() {
+        return new Collector<CourseResult, List<CourseResult>, String>() {
             @Override
-            public Supplier supplier() {
+            public Supplier<List<CourseResult>> supplier() {
+                return ArrayList::new;
+            }
+
+            @Override
+            public BiConsumer<List<CourseResult>, CourseResult> accumulator() {
+                return List::add;
+            }
+
+            @Override
+            public BinaryOperator<List<CourseResult>> combiner() {
                 return null;
             }
 
             @Override
-            public BiConsumer accumulator() {
-                return null;
-            }
+            public Function<List<CourseResult>, String> finisher() {
 
-            @Override
-            public BinaryOperator combiner() {
-                return null;
-            }
+                return courseResults -> {
+                    String tasks;
+                    Map<String,Integer> programTasks = new TreeMap<>() {{
+                        put("Lab 1. Figures", "Lab 1. Figures".length());
+                        put("Lab 2. War and Peace","Lab 2. War and Peace".length());
+                        put("Lab 3. File Tree","Lab 3. File Tree".length());
+                    }};
 
-            @Override
-            public Function finisher() {
-                return null;
+                    Map<String,Integer> historyTasks = new TreeMap<>() {{
+                        put("Phalanxing", "Phalanxing".length());
+                        put("Shieldwalling","Shieldwalling".length());
+                        put("Tercioing","Tercioing".length());
+                        put("Wedging","Wedging".length());
+                    }};
+
+                    Map<String,Integer> defaultTaskScores = new HashMap<>(){{
+                        put("Phalanxing", 0);
+                        put("Shieldwalling",0);
+                        put("Tercioing",0);
+                        put("Wedging",0);
+                    }};
+
+                    List<CourseResult> courseResultList = courseResults.stream().map(c -> new CourseResult(c.getPerson(),c.getTaskResults())).collect(Collectors.toList());
+
+                    if (areProgramming(courseResults.get(0)))
+                        tasks= String.join(" | ", programTasks.keySet());
+                    else {
+                        tasks = String.join(" | ", historyTasks.keySet());
+                        for (CourseResult c: courseResultList
+                        ) {
+                            defaultTaskScores.keySet().forEach(k -> c.getTaskResults().putIfAbsent(k, 0));
+                        }
+                    }
+
+                    double averageTotalScore = averageTotalScore(Stream.of(courseResults.toArray(new CourseResult[0])));
+
+                    Person longestName= courseResults.stream().max((e1,e2)->
+                                    e1.getPerson().getFirstName().length()+e1.getPerson().getLastName().length() > e2.getPerson().getFirstName().length()+e2.getPerson().getLastName().length() ? 1:-1)
+                            .get().getPerson();
+                    int nameLength = longestName.getFirstName().length()+longestName.getLastName().length();
+
+                    String summary="\n"+String.format(Locale.US,"%-"+(nameLength+1)+"s","Average")+" | "+averageScoresPerTask(Stream.of(courseResults.toArray
+                            (new CourseResult[0]))).entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey())
+                            .map(t->String.format(Locale.US,"%"+t.getKey().length()+".2f",Double.valueOf(String.format(Locale.US,"%.2f", t.getValue())))).collect(Collectors.joining(" | "))
+                            +" | "+String.format(Locale.US,"%.2f",averageTotalScore) +" |    "+mark(averageTotalScore)+" |";
+
+                    return String.format(Locale.US,"%-"+(nameLength+1)+"s","Student")+" | "+tasks+" | Total | Mark |\n"+courseResultList.stream()
+                            .sorted(Comparator.comparing(p -> p.getPerson().getLastName()))
+                            .map(D -> D.getPerson().getLastName() + " " + String.format(Locale.US,"%-"+(nameLength-D.getPerson().getLastName().length())+"s",D.getPerson().getFirstName()) + " | "+
+                                    D.getTaskResults().entrySet().stream().sorted(Map.Entry.comparingByKey()).map(e->String.format(Locale.US,"%"+e.getKey().length()+"s",e.getValue().toString())).collect(Collectors.joining(" | "))+" | "+
+                                    totalScores(Stream.of(D)).values().stream().map(aDouble -> String.format(Locale.US,"%.2f", aDouble)).collect(Collectors.joining())+" |    "+
+                                    String.join("", defineMarks(Stream.of(D)).values()) +" |")
+                            .collect(Collectors.joining("\n"))+summary;
+
+                };
             }
 
             @Override
             public Set<Characteristics> characteristics() {
-                return null;
+                return Set.of(Characteristics.UNORDERED);
             }
         };
     }
